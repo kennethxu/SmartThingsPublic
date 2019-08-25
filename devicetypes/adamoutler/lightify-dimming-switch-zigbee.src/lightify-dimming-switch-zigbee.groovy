@@ -51,6 +51,7 @@
 */
 metadata {
  definition(name: "Lightify Dimming Switch- Zigbee", namespace: "adamoutler", author: "Adam Amber House") {
+  capability "Switch"
   capability "Battery"
   capability "Button"
   capability "Switch Level"
@@ -237,7 +238,7 @@ def Map handleButtonPress(Map msg) {
  switch (msg.command) {
   case "01":
    state.buttonNumber=2
-   def returnval = on()
+   def returnval = onCommand()
    updateButtonState("on")
    return returnval
    break
@@ -247,7 +248,7 @@ def Map handleButtonPress(Map msg) {
    break
   case "00":
    state.buttonNumber=1
-   def returnval = off()
+   def returnval = offCommand()
    updateButtonState("off")
    return returnval
    break
@@ -493,7 +494,7 @@ def setLevel(Double level, Double duration) {
  log.info("Brightness commanded to " + level + "%")
  state.brightness = (int) level
  def result = createStCommand(" 8 4 {" + getBrightnessHex(2) + " " + formatNumber((int) duration, 4) + "}")
- if (state.on != "on") on()
+ if (state.on != "on") onCommand()
  fireCommands(result.command) //send it to the hub for processing
  reportOnState(true)
 }
@@ -564,13 +565,25 @@ def toggle() {
  Map command
  if (state.on == "on") {
   log.debug(device.displayName + " toggled on")
-  command = off()
+  command = offCommand()
  } else {
-  command = on()
+  command = onCommand()
   log.debug(device.displayName + " toggled off")
  }
  log.debug(command)
  fireCommands(command.command)
+}
+
+def on() {
+ if (state.on != "on") {
+  toggle()
+ }
+}
+
+def off() {
+ if (state.on != "off") {
+  toggle()
+ }
 }
 
 /**
@@ -605,7 +618,7 @@ void turnOffLights(){
 *turns light on. 
 *if already on, commands max
 */
-Map on() {
+Map onCommand() {
  log.debug(device.displayName + " commanded on" )
  
  if (myswitch != null){
@@ -625,7 +638,7 @@ Map on() {
 *turns light off
 *if already off, commands on to minimum
 */
-Map off() {
+Map offCommand() {
  log.debug(device.displayName + " commanded off")
  if (onOffTapped()){
     log.info("Lights turning off in 30 seconds")
@@ -634,7 +647,7 @@ Map off() {
  }
  state.lastAction=now()
  if (doubleTapped(false)){
-    def value=on()
+    def value=onCommand()
     setLevel(1, 1000)
     return value
  }
